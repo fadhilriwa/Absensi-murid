@@ -1,0 +1,1414 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Absensi — Pengajar</title>
+  <meta name="description" content="Halaman absensi pengajar sanggar. Catat kehadiran murid, lihat statistik, dan rekap bulanan." />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<div class="user-layout">
+
+  <!-- Header -->
+  <header class="user-header no-print">
+    <div class="header-brand">
+      <div class="header-logo">🎵</div>
+      <div>
+        <h1 style="font-size:.95rem;margin:0;">Absensi Sanggar</h1>
+        <span id="header-teacher-name" style="font-size:.75rem;color:var(--text2);font-weight:400;"></span>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="header-user">
+        <div class="header-avatar" id="header-avatar">?</div>
+        <div class="header-user-info">
+          <div class="name" id="header-display-name">—</div>
+          <div class="role-tag">Pengajar</div>
+        </div>
+      </div>
+      <button id="btn-admin-switch" class="btn btn-secondary btn-sm hidden" onclick="switchToAdmin()">🔄 Admin</button>
+      <button class="btn btn-secondary btn-sm" onclick="doLogout()">🚪 Keluar</button>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="user-main">
+
+    <!-- Greeting -->
+    <div class="user-greeting" id="user-greeting">
+      <div class="greeting-text">
+        <span class="greeting-wave">👋</span>
+        <div>
+          <div class="greeting-hello" id="greeting-hello">Selamat Pagi!</div>
+          <div class="greeting-name" id="greeting-name">—</div>
+        </div>
+      </div>
+      <div class="greeting-date">
+        <div class="greeting-date-big" id="date-today">—</div>
+        <div class="greeting-date-sub" id="date-day">—</div>
+      </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="user-stats-grid" id="user-stats"></div>
+
+    <!-- Tab bar -->
+    <div class="tab-bar">
+      <button id="tab-absen-btn" class="tab-btn active" onclick="switchTab('absen')">📋 Absensi</button>
+      <button id="tab-statistik-btn" class="tab-btn" onclick="switchTab('statistik')">📊 Statistik</button>
+      <button id="tab-riwayat-btn" class="tab-btn" onclick="switchTab('riwayat')">📅 Riwayat</button>
+      <button id="tab-profil-btn" class="tab-btn" onclick="switchTab('profil')">👤 Profil</button>
+    </div>
+
+    <!-- ═══ TAB: Absensi ═══ -->
+    <div id="tab-absen" class="tab-content active">
+
+      <!-- GPS Location Card -->
+      <div id="gps-location-card" class="hidden" style="margin-bottom:20px;">
+        <div class="card" style="border-left:4px solid var(--cyan);padding:16px 20px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <div id="gps-card-icon" style="width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.3rem;background:rgba(34,211,238,.1);border:2px solid rgba(34,211,238,.2);transition:all .3s;">📍</div>
+              <div>
+                <div id="gps-card-title" style="font-size:.88rem;font-weight:700;color:var(--text);">Verifikasi Lokasi GPS</div>
+                <div id="gps-card-subtitle" style="font-size:.72rem;color:var(--text3);margin-top:2px;">Diperlukan untuk absensi hadir</div>
+              </div>
+            </div>
+            <div id="gps-card-action">
+              <button class="btn btn-sm" style="background:rgba(34,211,238,.1);color:var(--cyan);border:1px solid rgba(34,211,238,.2);font-weight:700;" onclick="manualGPSVerify()">
+                📍 Verifikasi Sekarang
+              </button>
+            </div>
+          </div>
+          <div id="gps-card-detail" style="margin-top:12px;"></div>
+        </div>
+      </div>
+
+      <!-- Teacher Self Check-in -->
+      <div class="card" style="margin-bottom:20px;border-left:4px solid var(--violet);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+          <div>
+            <h2 class="section-title" style="font-size:.95rem;">📝 Absensi Pengajar</h2>
+            <p class="section-sub">Catat kehadiran Anda hari ini</p>
+          </div>
+          <div id="teacher-checkin-badge"></div>
+        </div>
+        <div id="teacher-checkin-area"></div>
+      </div>
+
+      <div class="card" style="margin-bottom:20px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;flex-wrap:wrap;gap:8px;">
+          <div>
+            <h2 class="section-title" id="student-list-title">Daftar Murid</h2>
+            <p class="section-sub" id="student-list-sub">Centang murid yang hadir hari ini</p>
+          </div>
+          <div id="absen-badge"></div>
+        </div>
+      </div>
+
+      <!-- Already submitted -->
+      <div id="submitted-view" class="hidden">
+        <div class="submitted-notice">
+          <div class="submitted-icon">✅</div>
+          <div class="submitted-title">Absensi Sudah Dikirim!</div>
+          <div class="submitted-time" id="submitted-time">—</div>
+          <button class="btn btn-secondary btn-sm" style="margin-top:14px;" onclick="enableResubmit()">✏️ Edit Absensi</button>
+        </div>
+        <div class="summary-bar" style="margin-top:16px;">
+          <div class="summary-item"><div class="val val-green" id="sv-hadir">0</div><div class="lbl">Hadir</div></div>
+          <div class="summary-item"><div class="val val-red" id="sv-absen">0</div><div class="lbl">Tidak Hadir</div></div>
+          <div class="summary-item"><div class="val val-violet" id="sv-total">0</div><div class="lbl">Total</div></div>
+        </div>
+        <div style="margin-top:16px;">
+          <div class="label-header">✅ Murid Hadir</div>
+          <div id="sv-present-list" class="history-students" style="margin-bottom:12px;"></div>
+          <div class="label-header">❌ Tidak Hadir</div>
+          <div id="sv-absent-list" class="history-students"></div>
+        </div>
+      </div>
+
+      <!-- Input form (active today) -->
+      <div id="absen-form-view">
+        <div class="select-all-bar">
+          <span id="checked-counter" style="color:var(--text2);">0 murid dipilih</span>
+          <div style="display:flex;gap:12px;">
+            <button onclick="selectAll(true)">✅ Pilih Semua</button>
+            <button onclick="selectAll(false)">☐ Hapus Pilihan</button>
+          </div>
+        </div>
+
+        <div class="student-list" id="student-list"></div>
+
+        <div class="summary-bar">
+          <div class="summary-item"><div class="val val-green" id="count-hadir">0</div><div class="lbl">Hadir</div></div>
+          <div class="summary-item"><div class="val val-red" id="count-absen">0</div><div class="lbl">Tidak Hadir</div></div>
+          <div class="summary-item"><div class="val val-violet" id="count-total">0</div><div class="lbl">Total</div></div>
+        </div>
+
+        <button id="btn-save" class="btn btn-primary btn-full btn-lg" style="margin-top:8px;" onclick="handleSaveAttendance()">
+          💾 Simpan Absensi
+        </button>
+      </div>
+    </div>
+
+    <!-- ═══ TAB: Statistik ═══ -->
+    <div id="tab-statistik" class="tab-content">
+      <div class="card" style="margin-bottom:20px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+          <div>
+            <h2 class="section-title">📊 Statistik Kehadiran</h2>
+            <p class="section-sub">Rekap kehadiran per murid</p>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <select id="stat-month" class="form-select" style="width:auto;" onchange="loadStatistik()"></select>
+            <select id="stat-year" class="form-select" style="width:auto;" onchange="loadStatistik()"></select>
+            <button class="btn btn-primary btn-sm" onclick="printStatistik()">🖨️ Cetak</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats Summary Cards -->
+      <div class="stat-mini-grid" id="stat-summary-cards"></div>
+
+      <!-- Per-student breakdown -->
+      <div class="card" style="margin-bottom:20px;" id="stat-breakdown-card">
+        <h3 class="section-title" style="margin-bottom:16px;">Kehadiran Per Murid</h3>
+        <div id="stat-student-bars"></div>
+      </div>
+
+      <!-- Heatmap / Calendar -->
+      <div class="card">
+        <h3 class="section-title" style="margin-bottom:16px;">📅 Kalender Absensi</h3>
+        <div id="stat-calendar" class="stat-calendar"></div>
+      </div>
+    </div>
+
+    <!-- ═══ TAB: Riwayat ═══ -->
+    <div id="tab-riwayat" class="tab-content">
+      <div class="card" style="margin-bottom:20px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+          <div>
+            <h2 class="section-title">📅 Riwayat Absensi</h2>
+            <p class="section-sub">Catatan harian kehadiran murid</p>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <select id="riwayat-month" class="form-select" style="width:auto;" onchange="loadRiwayat()"></select>
+            <select id="riwayat-year" class="form-select" style="width:auto;" onchange="loadRiwayat()"></select>
+          </div>
+        </div>
+      </div>
+      <div class="riwayat-summary" id="riwayat-summary"></div>
+      <div id="riwayat-list" class="history-list"></div>
+    </div>
+
+    <!-- ═══ TAB: Profil ═══ -->
+    <div id="tab-profil" class="tab-content">
+      <div class="profile-card">
+        <div class="profile-avatar" id="profile-avatar">?</div>
+        <h2 class="profile-name" id="profile-name">—</h2>
+        <div class="profile-role">Pengajar Sanggar</div>
+        <div class="profile-info-grid">
+          <div class="profile-info-item">
+            <div class="profile-info-label">Username</div>
+            <div class="profile-info-value" id="profile-username">—</div>
+          </div>
+          <div class="profile-info-item">
+            <div class="profile-info-label">Total Murid</div>
+            <div class="profile-info-value" id="profile-total-murid">0</div>
+          </div>
+          <div class="profile-info-item">
+            <div class="profile-info-label">Kelas Aktif</div>
+            <div class="profile-info-value" id="profile-kelas">—</div>
+          </div>
+          <div class="profile-info-item">
+            <div class="profile-info-label">Pelajaran</div>
+            <div class="profile-info-value" id="profile-pelajaran">—</div>
+          </div>
+        </div>
+        <div class="profile-student-list">
+          <h3 style="font-size:.88rem;margin-bottom:12px;color:var(--text2);">🎓 Daftar Murid</h3>
+          <div id="profile-murid-cards"></div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="user-footer no-print">
+    <span>🎵 Absensi Sanggar</span>
+    <span style="color:var(--text3);">v2.0</span>
+  </footer>
+</div>
+
+<!-- Print area for statistik -->
+<div id="print-stat-area" class="print-only" style="display:none;"></div>
+
+<!-- GPS Verification Modal -->
+<div id="gps-modal" class="modal-overlay hidden" style="z-index:9999;">
+  <div class="modal" style="max-width:440px;text-align:center;">
+    <div class="modal-header" style="justify-content:center;border:none;padding-bottom:0;">
+      <h3 id="gps-modal-title" style="font-size:1.05rem;">📍 Verifikasi Lokasi</h3>
+    </div>
+    <div id="gps-modal-body" style="padding:20px 24px;">
+      <!-- Dynamic content -->
+    </div>
+    <div id="gps-modal-footer" class="modal-footer" style="justify-content:center;">
+      <button class="btn btn-secondary btn-sm" onclick="closeGPSModal()">Tutup</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script src="js/data.js"></script>
+<script>
+/* ═══════════════════════════════════════════
+   USER APP — Enhanced + GPS Verification
+═══════════════════════════════════════════ */
+let session   = null;
+let teacher   = null;
+let students  = [];
+let selected  = new Set();
+
+/* ═══════════════════════════════════════════
+   GPS VERIFICATION & ANTI-FAKE GPS SYSTEM
+═══════════════════════════════════════════ */
+let gpsVerified = false;
+let gpsPosition = null;
+let gpsCallback = null;
+let gpsWatchId  = null;
+let gpsHistory  = [];  // Collect multiple position samples
+const GPS_SAMPLES_NEEDED = 3;
+const GPS_SAMPLE_INTERVAL = 800; // ms between samples
+
+// Haversine distance (meters)
+function haversineDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371000;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) *
+            Math.sin(dLon/2) * Math.sin(dLon/2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+// ── Fake GPS Detection Engine ──
+function detectFakeGPS(position, samples) {
+  const warnings = [];
+  let isMocked = false;
+  const coords = position.coords;
+
+  // 1. Check Android mock location flag
+  if (coords.isMocked === true || position.isMocked === true) {
+    warnings.push('Mock location flag terdeteksi');
+    isMocked = true;
+  }
+
+  // 2. Check if accuracy is suspiciously perfect (fake GPS often returns exactly 20.0 or similar round numbers)
+  if (coords.accuracy && coords.accuracy <= 1) {
+    warnings.push(`Akurasi terlalu sempurna: ${coords.accuracy}m`);
+    isMocked = true;
+  }
+
+  // 3. Check timestamp freshness — stale timestamp from cached/fake position
+  const posAge = Date.now() - position.timestamp;
+  if (posAge > 30000) { // >30 seconds old
+    warnings.push('Posisi GPS sudah kedaluwarsa (stale)');
+    isMocked = true;
+  }
+
+  // 4. Altitude check — fake GPS often returns 0.0 altitude exactly
+  if (coords.altitude !== null && coords.altitude !== undefined) {
+    if (coords.altitude === 0 && coords.altitudeAccuracy === null) {
+      warnings.push('Altitude mencurigakan (0m tanpa akurasi)');
+      // Soft warning, some real devices show 0 too
+    }
+  }
+
+  // 5. Speed anomaly — if speed property is available check for teleportation
+  if (coords.speed !== null && coords.speed !== undefined && coords.speed > 100) {
+    warnings.push(`Kecepatan tidak wajar: ${Math.round(coords.speed * 3.6)} km/h`);
+    isMocked = true;
+  }
+
+  // 6. Multi-sample consistency check — fake GPS often returns EXACT same coords
+  if (samples && samples.length >= 2) {
+    let allIdentical = true;
+    let maxJump = 0;
+    for (let i = 1; i < samples.length; i++) {
+      const prevC = samples[i-1].coords;
+      const currC = samples[i].coords;
+      if (prevC.latitude !== currC.latitude || prevC.longitude !== currC.longitude) {
+        allIdentical = false;
+      }
+      const jump = haversineDistance(prevC.latitude, prevC.longitude, currC.latitude, currC.longitude);
+      maxJump = Math.max(maxJump, jump);
+    }
+    
+    // If all samples are byte-for-byte identical (suspicious for real GPS which has micro-drift)
+    if (allIdentical && samples.length >= 3) {
+      let allSameAccuracy = samples.every(s => s.coords.accuracy === samples[0].coords.accuracy);
+      if (allSameAccuracy) {
+        warnings.push('Posisi GPS identik di semua sampel (kemungkinan fake)');
+        isMocked = true;
+      }
+    }
+    
+    // Teleportation: huge jump between consecutive samples
+    const timeDiff = (samples[samples.length-1].timestamp - samples[0].timestamp) / 1000;
+    if (timeDiff > 0 && maxJump > 0) {
+      const speed = maxJump / timeDiff; // m/s
+      if (speed > 50) { // >180 km/h between samples
+        warnings.push(`Teleportasi terdeteksi: ${Math.round(maxJump)}m dalam ${timeDiff.toFixed(1)}s`);
+        isMocked = true;
+      }
+    }
+  }
+
+  // 7. WebRTC/WebGL fingerprint — check if developer tools injection signs exist
+  try {
+    if (window.__defineGetter__ && navigator.__lookupGetter__('geolocation')) {
+      warnings.push('Geolocation API mungkin di-override');
+      isMocked = true;
+    }
+  } catch(e) {}
+
+  // 8. Check if geolocation prototype is tampered
+  try {
+    const geoProto = Object.getPrototypeOf(navigator.geolocation);
+    if (geoProto && geoProto.getCurrentPosition && 
+        geoProto.getCurrentPosition.toString().indexOf('native code') === -1) {
+      warnings.push('getCurrentPosition method di-override');
+      isMocked = true;
+    }
+  } catch(e) {}
+
+  return { isMocked, warnings };
+}
+
+// ── GPS Verification Flow ──
+function requireGPSVerification(callback) {
+  const config = getGPSConfig();
+  
+  // If GPS is disabled in config, skip verification
+  if (!config.enabled) {
+    gpsVerified = true;
+    callback();
+    return;
+  }
+
+  // If already verified this session
+  if (gpsVerified && gpsPosition) {
+    callback();
+    return;
+  }
+
+  gpsCallback = callback;
+  gpsHistory = [];
+  showGPSModal('loading');
+  startGPSCollection(config);
+}
+
+function showGPSModal(state, data) {
+  const modal = document.getElementById('gps-modal');
+  const body  = document.getElementById('gps-modal-body');
+  const footer = document.getElementById('gps-modal-footer');
+  const title  = document.getElementById('gps-modal-title');
+  modal.classList.remove('hidden');
+
+  if (state === 'loading') {
+    title.textContent = '📍 Verifikasi Lokasi';
+    body.innerHTML = `
+      <div style="margin:20px 0;">
+        <div class="gps-spinner"></div>
+        <div style="font-size:.92rem;font-weight:600;margin-top:16px;color:var(--text1);">Mendapatkan lokasi GPS...</div>
+        <div style="font-size:.78rem;color:var(--text3);margin-top:6px;">Mengumpulkan sampel posisi (${gpsHistory.length}/${GPS_SAMPLES_NEEDED})</div>
+        <div style="margin-top:14px;padding:10px 16px;border-radius:var(--radius);background:rgba(6,182,212,.06);border:1px solid rgba(6,182,212,.15);">
+          <div style="font-size:.72rem;color:var(--cyan);">🛡️ Sistem anti-fake GPS aktif</div>
+          <div style="font-size:.68rem;color:var(--text3);margin-top:4px;">Memeriksa keaslian sinyal GPS...</div>
+        </div>
+      </div>`;
+    footer.innerHTML = '<button class="btn btn-secondary btn-sm" onclick="cancelGPSVerification()">Batal</button>';
+  }
+  else if (state === 'success') {
+    title.textContent = '✅ Lokasi Terverifikasi';
+    body.innerHTML = `
+      <div style="margin:16px 0;">
+        <div style="font-size:2.4rem;margin-bottom:8px;">✅</div>
+        <div style="font-size:.92rem;font-weight:700;color:var(--green);">Lokasi Valid!</div>
+        <div style="font-size:.8rem;color:var(--text2);margin-top:6px;">Anda berada di area ${data.locationName}</div>
+        <div style="margin-top:14px;padding:12px 16px;border-radius:var(--radius);background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.15);">
+          <div style="display:flex;justify-content:space-between;font-size:.72rem;color:var(--text2);">
+            <span>📏 Jarak</span><span style="font-weight:700;color:var(--green);">${data.distance}m dari sanggar</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:.72rem;color:var(--text2);margin-top:6px;">
+            <span>📡 Akurasi</span><span>${data.accuracy}m</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:.72rem;color:var(--text2);margin-top:6px;">
+            <span>🛡️ Fake GPS</span><span style="font-weight:700;color:var(--green);">Tidak terdeteksi</span>
+          </div>
+        </div>
+      </div>`;
+    footer.innerHTML = '<button class="btn btn-primary btn-sm" onclick="closeGPSModal(); if(gpsCallback) gpsCallback();">Lanjutkan</button>';
+  }
+  else if (state === 'fake_detected') {
+    title.textContent = '🚫 Fake GPS Terdeteksi!';
+    body.innerHTML = `
+      <div style="margin:16px 0;">
+        <div style="font-size:2.4rem;margin-bottom:8px;">🚫</div>
+        <div style="font-size:.92rem;font-weight:700;color:var(--red);">FAKE GPS TERDETEKSI!</div>
+        <div style="font-size:.8rem;color:var(--text2);margin-top:6px;">Sistem mendeteksi penggunaan lokasi palsu</div>
+        <div style="margin-top:14px;padding:12px 16px;border-radius:var(--radius);background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.15);text-align:left;">
+          <div style="font-size:.72rem;font-weight:700;color:var(--red);margin-bottom:8px;">⚠️ Pelanggaran:</div>
+          ${data.warnings.map(w => `<div style="font-size:.72rem;color:var(--text2);padding:2px 0;">• ${w}</div>`).join('')}
+        </div>
+        <div style="margin-top:12px;padding:10px 16px;border-radius:var(--radius);background:rgba(239,68,68,.04);">
+          <div style="font-size:.72rem;color:var(--red);">❌ Absensi tidak dapat dilakukan dengan fake GPS</div>
+          <div style="font-size:.68rem;color:var(--text3);margin-top:4px;">Matikan aplikasi fake GPS lalu coba lagi</div>
+        </div>
+      </div>`;
+    footer.innerHTML = `
+      <button class="btn btn-secondary btn-sm" onclick="closeGPSModal()">Tutup</button>
+      <button class="btn btn-primary btn-sm" onclick="retryGPSVerification()">🔄 Coba Lagi</button>`;
+  }
+  else if (state === 'out_of_range') {
+    title.textContent = '📍 Di Luar Jangkauan';
+    body.innerHTML = `
+      <div style="margin:16px 0;">
+        <div style="font-size:2.4rem;margin-bottom:8px;">📍</div>
+        <div style="font-size:.92rem;font-weight:700;color:var(--amber);">Di Luar Area Sanggar</div>
+        <div style="font-size:.8rem;color:var(--text2);margin-top:6px;">Anda terlalu jauh dari lokasi ${data.locationName}</div>
+        <div style="margin-top:14px;padding:12px 16px;border-radius:var(--radius);background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.15);">
+          <div style="display:flex;justify-content:space-between;font-size:.72rem;color:var(--text2);">
+            <span>📏 Jarak Anda</span><span style="font-weight:700;color:var(--amber);">${data.distance}m</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:.72rem;color:var(--text2);margin-top:6px;">
+            <span>📐 Radius Maks</span><span style="font-weight:700;">${data.radius}m</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:.72rem;color:var(--text2);margin-top:6px;">
+            <span>📡 Akurasi GPS</span><span>${data.accuracy}m</span>
+          </div>
+        </div>
+      </div>`;
+    footer.innerHTML = `
+      <button class="btn btn-secondary btn-sm" onclick="closeGPSModal()">Tutup</button>
+      <button class="btn btn-primary btn-sm" onclick="retryGPSVerification()">🔄 Coba Lagi</button>`;
+  }
+  else if (state === 'error') {
+    title.textContent = '⚠️ Error GPS';
+    body.innerHTML = `
+      <div style="margin:16px 0;">
+        <div style="font-size:2.4rem;margin-bottom:8px;">⚠️</div>
+        <div style="font-size:.92rem;font-weight:700;color:var(--amber);">Gagal Mendapatkan Lokasi</div>
+        <div style="font-size:.8rem;color:var(--text2);margin-top:6px;">${data.message}</div>
+        <div style="margin-top:12px;padding:10px 16px;border-radius:var(--radius);background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.15);">
+          <div style="font-size:.72rem;color:var(--text2);">💡 Pastikan:</div>
+          <div style="font-size:.72rem;color:var(--text3);margin-top:4px;">• GPS aktif di perangkat</div>
+          <div style="font-size:.72rem;color:var(--text3);">• Izin lokasi diberikan ke browser</div>
+          <div style="font-size:.72rem;color:var(--text3);">• Berada di area terbuka</div>
+        </div>
+      </div>`;
+    footer.innerHTML = `
+      <button class="btn btn-secondary btn-sm" onclick="closeGPSModal()">Tutup</button>
+      <button class="btn btn-primary btn-sm" onclick="retryGPSVerification()">🔄 Coba Lagi</button>`;
+  }
+}
+
+function startGPSCollection(config) {
+  if (!navigator.geolocation) {
+    showGPSModal('error', { message: 'Browser tidak mendukung GPS / Geolocation' });
+    return;
+  }
+
+  let samplesCollected = 0;
+  gpsHistory = [];
+
+  function collectSample() {
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        gpsHistory.push({
+          coords: {
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+            accuracy: pos.coords.accuracy,
+            altitude: pos.coords.altitude,
+            altitudeAccuracy: pos.coords.altitudeAccuracy,
+            speed: pos.coords.speed,
+            heading: pos.coords.heading,
+            isMocked: pos.coords.isMocked,
+          },
+          timestamp: pos.timestamp,
+          isMocked: pos.isMocked,
+        });
+        samplesCollected++;
+
+        // Update loading indicator
+        const loadingText = document.querySelector('#gps-modal-body .gps-spinner');
+        if (loadingText) {
+          const counterEl = loadingText.nextElementSibling?.nextElementSibling;
+          if (counterEl) counterEl.textContent = `Mengumpulkan sampel posisi (${samplesCollected}/${GPS_SAMPLES_NEEDED})`;
+        }
+
+        if (samplesCollected < GPS_SAMPLES_NEEDED) {
+          setTimeout(collectSample, GPS_SAMPLE_INTERVAL);
+        } else {
+          processGPSResult(config);
+        }
+      },
+      (err) => {
+        let msg = 'Gagal mendapatkan lokasi.';
+        if (err.code === 1) msg = 'Izin lokasi ditolak. Aktifkan izin lokasi di pengaturan browser.';
+        else if (err.code === 2) msg = 'Posisi tidak tersedia. Pastikan GPS aktif.';
+        else if (err.code === 3) msg = 'Waktu habis. Coba lagi di area terbuka.';
+        showGPSModal('error', { message: msg });
+        logGPSAttempt(null, null, 'error', false, msg);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0  // Force fresh position, don't use cached
+      }
+    );
+  }
+
+  collectSample();
+}
+
+function processGPSResult(config) {
+  // Use the latest sample as primary position
+  const lastSample = gpsHistory[gpsHistory.length - 1];
+  const coords = lastSample.coords;
+
+  // Run fake GPS detection
+  const fakeCheck = detectFakeGPS(lastSample, gpsHistory);
+
+  if (fakeCheck.isMocked) {
+    showGPSModal('fake_detected', { warnings: fakeCheck.warnings });
+    logGPSAttempt(coords.latitude, coords.longitude, 'fake_detected', true, fakeCheck.warnings.join('; '));
+    gpsVerified = false;
+    gpsCallback = null;
+    return;
+  }
+
+  // Calculate distance from sanggar
+  const distance = Math.round(haversineDistance(
+    coords.latitude, coords.longitude,
+    config.lat, config.lng
+  ));
+
+  if (distance > config.radius) {
+    showGPSModal('out_of_range', {
+      distance: distance,
+      radius: config.radius,
+      accuracy: Math.round(coords.accuracy),
+      locationName: config.locationName,
+    });
+    logGPSAttempt(coords.latitude, coords.longitude, 'out_of_range', false, `Jarak: ${distance}m, Max: ${config.radius}m`);
+    gpsVerified = false;
+    gpsCallback = null;
+    return;
+  }
+
+  // GPS verified!
+  gpsVerified = true;
+  gpsPosition = { lat: coords.latitude, lng: coords.longitude, accuracy: coords.accuracy, distance: distance };
+  showGPSModal('success', {
+    distance: distance,
+    accuracy: Math.round(coords.accuracy),
+    locationName: config.locationName,
+  });
+  logGPSAttempt(coords.latitude, coords.longitude, 'verified', false, `Jarak: ${distance}m`);
+  updateGPSStatusIndicator(true, distance);
+}
+
+function logGPSAttempt(lat, lng, status, isMocked, detail) {
+  if (!teacher) return;
+  const now = new Date();
+  saveGPSLog({
+    teacherId: teacher.id,
+    teacherName: teacher.name,
+    date: getTodayKey(),
+    time: now.toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit', second:'2-digit' }),
+    lat: lat,
+    lng: lng,
+    status: status,
+    isMocked: isMocked,
+    detail: detail,
+    userAgent: navigator.userAgent.substring(0, 100),
+  });
+}
+
+function closeGPSModal() {
+  document.getElementById('gps-modal').classList.add('hidden');
+}
+
+function cancelGPSVerification() {
+  gpsCallback = null;
+  closeGPSModal();
+}
+
+function retryGPSVerification() {
+  gpsHistory = [];
+  const config = getGPSConfig();
+  showGPSModal('loading');
+  startGPSCollection(config);
+}
+
+// GPS Status indicator in header
+function updateGPSStatusIndicator(verified, distance) {
+  let indicator = document.getElementById('gps-status-indicator');
+  if (!indicator) {
+    indicator = document.createElement('div');
+    indicator.id = 'gps-status-indicator';
+    indicator.style.cssText = 'display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:20px;font-size:.68rem;font-weight:600;cursor:pointer;transition:all .2s;';
+    indicator.onclick = () => showGPSInfo();
+    const headerRight = document.querySelector('.header-right');
+    if (headerRight) headerRight.insertBefore(indicator, headerRight.firstChild);
+  }
+  if (verified) {
+    indicator.style.background = 'rgba(16,185,129,.1)';
+    indicator.style.color = 'var(--green)';
+    indicator.style.border = '1px solid rgba(16,185,129,.2)';
+    indicator.innerHTML = `<span>📍</span><span>Terverifikasi (${distance}m)</span>`;
+  } else {
+    indicator.style.background = 'rgba(239,68,68,.1)';
+    indicator.style.color = 'var(--red)';
+    indicator.style.border = '1px solid rgba(239,68,68,.2)';
+    indicator.innerHTML = '<span>⚠️</span><span>Belum Terverifikasi</span>';
+  }
+}
+
+function showGPSInfo() {
+  const config = getGPSConfig();
+  if (!config.enabled) {
+    showToast('📍 GPS tidak aktif. Admin belum mengaktifkan verifikasi lokasi.', 'info');
+    return;
+  }
+  if (gpsVerified && gpsPosition) {
+    showToast(`📍 Terverifikasi — ${gpsPosition.distance}m dari ${config.locationName} (Akurasi: ${Math.round(gpsPosition.accuracy)}m)`, 'success');
+  } else {
+    showToast('📍 Lokasi belum diverifikasi. Lakukan absensi untuk verifikasi.', 'info');
+  }
+}
+
+function initGPSIndicator() {
+  const config = getGPSConfig();
+  if (config.enabled) {
+    updateGPSStatusIndicator(false, 0);
+    // Show the GPS card
+    const card = document.getElementById('gps-location-card');
+    if (card) card.classList.remove('hidden');
+    updateGPSCard('pending');
+  }
+}
+
+function manualGPSVerify() {
+  requireGPSVerification(() => {
+    updateGPSCard('verified');
+    showToast('✅ Lokasi berhasil diverifikasi! Anda bisa absen sekarang.', 'success');
+  });
+}
+
+function updateGPSCard(state) {
+  const config = getGPSConfig();
+  const icon = document.getElementById('gps-card-icon');
+  const title = document.getElementById('gps-card-title');
+  const subtitle = document.getElementById('gps-card-subtitle');
+  const action = document.getElementById('gps-card-action');
+  const detail = document.getElementById('gps-card-detail');
+  const cardEl = document.querySelector('#gps-location-card .card');
+
+  if (!icon) return;
+
+  if (state === 'pending') {
+    cardEl.style.borderLeftColor = 'var(--amber)';
+    icon.style.background = 'rgba(251,191,36,.1)';
+    icon.style.borderColor = 'rgba(251,191,36,.3)';
+    icon.innerHTML = '📍';
+    title.textContent = '📍 Verifikasi Lokasi Diperlukan';
+    title.style.color = 'var(--amber)';
+    subtitle.textContent = `Anda harus berada di area ${config.locationName} untuk absen "Hadir"`;
+    action.innerHTML = `
+      <button class="btn btn-sm" style="background:rgba(251,191,36,.1);color:var(--amber);border:1px solid rgba(251,191,36,.25);font-weight:700;" onclick="manualGPSVerify()">
+        📍 Verifikasi Lokasi
+      </button>`;
+    detail.innerHTML = `
+      <div style="display:flex;gap:12px;flex-wrap:wrap;">
+        <div style="padding:6px 12px;border-radius:var(--radius-sm);background:rgba(251,191,36,.05);border:1px solid rgba(251,191,36,.1);font-size:.68rem;color:var(--amber);">
+          ⏳ Belum terverifikasi
+        </div>
+        <div style="padding:6px 12px;border-radius:var(--radius-sm);background:rgba(6,182,212,.05);border:1px solid rgba(6,182,212,.1);font-size:.68rem;color:var(--cyan);">
+          🛡️ Anti-Fake GPS aktif
+        </div>
+        <div style="padding:6px 12px;border-radius:var(--radius-sm);background:var(--surface);border:1px solid var(--border);font-size:.68rem;color:var(--text3);">
+          📐 Radius: ${config.radius}m
+        </div>
+      </div>`;
+  }
+  else if (state === 'verified') {
+    const dist = gpsPosition ? gpsPosition.distance : 0;
+    const acc = gpsPosition ? Math.round(gpsPosition.accuracy) : 0;
+    cardEl.style.borderLeftColor = 'var(--green)';
+    icon.style.background = 'rgba(16,185,129,.12)';
+    icon.style.borderColor = 'rgba(16,185,129,.3)';
+    icon.innerHTML = '✅';
+    title.textContent = '✅ Lokasi Terverifikasi';
+    title.style.color = 'var(--green)';
+    subtitle.textContent = `Anda berada di area ${config.locationName}`;
+    action.innerHTML = `<span class="badge badge-green" style="font-size:.72rem;">✅ Valid</span>`;
+    detail.innerHTML = `
+      <div style="display:flex;gap:12px;flex-wrap:wrap;">
+        <div style="padding:6px 12px;border-radius:var(--radius-sm);background:rgba(16,185,129,.05);border:1px solid rgba(16,185,129,.1);font-size:.68rem;color:var(--green);">
+          📏 Jarak: ${dist}m dari sanggar
+        </div>
+        <div style="padding:6px 12px;border-radius:var(--radius-sm);background:rgba(16,185,129,.05);border:1px solid rgba(16,185,129,.1);font-size:.68rem;color:var(--green);">
+          📡 Akurasi: ${acc}m
+        </div>
+        <div style="padding:6px 12px;border-radius:var(--radius-sm);background:rgba(16,185,129,.05);border:1px solid rgba(16,185,129,.1);font-size:.68rem;color:var(--green);">
+          🛡️ Fake GPS: Tidak terdeteksi
+        </div>
+      </div>`;
+  }
+}
+let todayKey  = getTodayKey();
+
+const MONTHS   = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+const DAYS     = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+const DAYS_SHT = ['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
+
+/* ─── Boot ───── */
+window.addEventListener('DOMContentLoaded', () => {
+  session = requireAuth();
+  if (!session) return;
+
+  teacher  = getTeacherById(session.teacherId);
+  if (!teacher) {
+    showToast('Data pengajar tidak ditemukan. Hubungi admin.', 'error');
+    setTimeout(doLogout, 1500);
+    return;
+  }
+  students = teacher.students;
+
+  // Header
+  document.getElementById('header-display-name').textContent = session.displayName;
+  document.getElementById('header-teacher-name').textContent = teacher.name;
+  document.getElementById('header-avatar').textContent = session.displayName.charAt(0).toUpperCase();
+
+  if (session.role === 'admin') {
+    document.getElementById('btn-admin-switch').classList.remove('hidden');
+  }
+
+  renderGreeting();
+  renderQuickStats();
+  initGPSIndicator();
+  renderTeacherCheckin();
+  renderStudentList();
+  checkAlreadySubmitted();
+  populateFilters();
+  loadRiwayat();
+  loadStatistik();
+  renderProfile();
+});
+
+/* ─── Greeting ───── */
+function renderGreeting() {
+  const now  = new Date();
+  const hour = now.getHours();
+  let greeting = 'Selamat Malam!';
+  if (hour >= 5 && hour < 12)  greeting = 'Selamat Pagi! ☀️';
+  else if (hour >= 12 && hour < 15) greeting = 'Selamat Siang! 🌤️';
+  else if (hour >= 15 && hour < 18) greeting = 'Selamat Sore! 🌅';
+  else greeting = 'Selamat Malam! 🌙';
+
+  document.getElementById('greeting-hello').textContent = greeting;
+  document.getElementById('greeting-name').textContent = session.displayName;
+  document.getElementById('date-today').textContent = `${now.getDate()} ${MONTHS[now.getMonth()]} ${now.getFullYear()}`;
+  document.getElementById('date-day').textContent = DAYS[now.getDay()];
+}
+
+/* ─── Quick Stats ───── */
+function renderQuickStats() {
+  const now    = new Date();
+  const month  = now.getMonth() + 1;
+  const year   = now.getFullYear();
+  const report = getMonthlyReport(teacher.id, year, month);
+
+  const daysSubmitted = report.filter(r => r.submitted).length;
+  const totalHadir    = report.reduce((s, r) => s + r.count, 0);
+  const totalMurid    = students.length;
+  const avgRate       = daysSubmitted && totalMurid
+    ? Math.round(totalHadir / (daysSubmitted * totalMurid) * 100)
+    : 0;
+
+  // Streak: count consecutive days from today backwards
+  const allAtt = getAttendance();
+  let streak = 0;
+  const d = new Date(now);
+  while (true) {
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    if (allAtt[key]?.[teacher.id]?.submitted) {
+      streak++;
+      d.setDate(d.getDate() - 1);
+    } else break;
+  }
+
+  document.getElementById('user-stats').innerHTML = `
+    <div class="user-stat-card">
+      <div class="us-icon">🎓</div>
+      <div class="us-val">${totalMurid}</div>
+      <div class="us-label">Total Murid</div>
+    </div>
+    <div class="user-stat-card">
+      <div class="us-icon">📅</div>
+      <div class="us-val">${daysSubmitted}</div>
+      <div class="us-label">Hari Absensi</div>
+    </div>
+    <div class="user-stat-card">
+      <div class="us-icon">📈</div>
+      <div class="us-val">${avgRate}%</div>
+      <div class="us-label">Kehadiran</div>
+    </div>
+    <div class="user-stat-card">
+      <div class="us-icon">🔥</div>
+      <div class="us-val">${streak}</div>
+      <div class="us-label">Hari Streak</div>
+    </div>`;
+}
+
+/* ─── Tabs ───── */
+function switchTab(tab) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  document.getElementById('tab-' + tab + '-btn').classList.add('active');
+  if (tab === 'statistik') loadStatistik();
+  if (tab === 'riwayat')   loadRiwayat();
+}
+
+/* ═══ ABSENSI ═══ */
+function renderStudentList() {
+  const list = document.getElementById('student-list');
+  list.innerHTML = '';
+  document.getElementById('count-total').textContent = students.length;
+  document.getElementById('student-list-title').textContent = `Daftar Murid — ${teacher.name}`;
+
+  students.forEach((s, idx) => {
+    const name    = studentName(s);
+    const kelas   = typeof s === 'object' ? (s.kelas || '') : '';
+    const pelajar = typeof s === 'object' && s.pelajaran?.length ? s.pelajaran.join(', ') : '';
+    const initial = name.charAt(0).toUpperCase();
+
+    const item = document.createElement('div');
+    item.className = 'student-item unchecked';
+    item.id = 'student-item-' + idx;
+    item.onclick = () => toggleStudent(idx);
+    item.innerHTML = `
+      <div class="custom-checkbox" id="cb-${idx}"></div>
+      <div class="student-avatar-sm">${initial}</div>
+      <div style="flex:1;min-width:0;">
+        <div class="student-name">${name}</div>
+        ${(kelas || pelajar) ? `<div class="student-info-small">${[kelas, pelajar].filter(Boolean).join(' · ')}</div>` : ''}
+      </div>
+      <div class="student-status" id="status-${idx}">Tidak Hadir</div>
+    `;
+    list.appendChild(item);
+  });
+  updateCounters();
+}
+
+function toggleStudent(idx) {
+  const name     = studentName(students[idx]);
+  const item     = document.getElementById('student-item-' + idx);
+  const statusEl = document.getElementById('status-' + idx);
+  if (selected.has(name)) {
+    selected.delete(name);
+    item.className = 'student-item unchecked';
+    statusEl.textContent = 'Tidak Hadir';
+  } else {
+    selected.add(name);
+    item.className = 'student-item checked';
+    statusEl.textContent = 'Hadir ✓';
+  }
+  updateCounters();
+}
+
+function updateCounters() {
+  const hadir = selected.size;
+  const absen = students.length - hadir;
+  document.getElementById('count-hadir').textContent = hadir;
+  document.getElementById('count-absen').textContent = absen;
+  document.getElementById('checked-counter').textContent = `${hadir} murid dipilih`;
+}
+
+function selectAll(state) {
+  students.forEach((s, idx) => {
+    const name = studentName(s);
+    const item = document.getElementById('student-item-' + idx);
+    const statusEl = document.getElementById('status-' + idx);
+    if (state) {
+      selected.add(name);
+      item.className = 'student-item checked';
+      statusEl.textContent = 'Hadir ✓';
+    } else {
+      selected.delete(name);
+      item.className = 'student-item unchecked';
+      statusEl.textContent = 'Tidak Hadir';
+    }
+  });
+  updateCounters();
+}
+
+/* ─── Save ───── */
+function handleSaveAttendance() {
+  requireGPSVerification(() => {
+    updateGPSCard('verified');
+    doSaveAttendance();
+  });
+}
+
+function doSaveAttendance() {
+  const btn = document.getElementById('btn-save');
+  btn.disabled = true;
+  btn.innerHTML = '⏳ Menyimpan...';
+
+  const presentList = [...selected];
+  saveAttendanceForDate(teacher.id, todayKey, presentList);
+
+  showToast(`✅ Absensi berhasil disimpan! ${presentList.length} murid hadir.`, 'success');
+  renderQuickStats();
+  checkAlreadySubmitted();
+}
+
+/* ─── Re-submit ───── */
+function enableResubmit() {
+  const rec = getAttendanceForDate(teacher.id, todayKey);
+  document.getElementById('submitted-view').classList.add('hidden');
+  document.getElementById('absen-form-view').classList.remove('hidden');
+
+  // Pre-check previously present students
+  selected.clear();
+  if (rec && rec.present) {
+    rec.present.forEach(n => selected.add(n));
+  }
+  students.forEach((s, idx) => {
+    const name = studentName(s);
+    const item = document.getElementById('student-item-' + idx);
+    const statusEl = document.getElementById('status-' + idx);
+    if (selected.has(name)) {
+      item.className = 'student-item checked';
+      statusEl.textContent = 'Hadir ✓';
+    } else {
+      item.className = 'student-item unchecked';
+      statusEl.textContent = 'Tidak Hadir';
+    }
+  });
+  updateCounters();
+
+  const btn = document.getElementById('btn-save');
+  btn.disabled = false;
+  btn.innerHTML = '💾 Perbarui Absensi';
+
+  showToast('✏️ Mode edit — ubah lalu simpan ulang.', 'info');
+}
+
+/* ─── Check if already submitted ───── */
+function checkAlreadySubmitted() {
+  const rec = getAttendanceForDate(teacher.id, todayKey);
+  if (rec && rec.submitted) {
+    document.getElementById('absen-form-view').classList.add('hidden');
+    document.getElementById('submitted-view').classList.remove('hidden');
+
+    const savedAt = new Date(rec.savedAt);
+    document.getElementById('submitted-time').textContent =
+      `Dikirim pada ${savedAt.toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit' })} WIB`;
+
+    const total = students.length;
+    const hadir = rec.present.length;
+    document.getElementById('sv-hadir').textContent = hadir;
+    document.getElementById('sv-absen').textContent = total - hadir;
+    document.getElementById('sv-total').textContent = total;
+
+    const presentDiv = document.getElementById('sv-present-list');
+    const absentDiv  = document.getElementById('sv-absent-list');
+    presentDiv.innerHTML = rec.present.length
+      ? rec.present.map(n => `<span class="student-chip">${n}</span>`).join('')
+      : '<span style="color:var(--text3);font-size:.82rem;">—</span>';
+    const absentList = students.map(s => studentName(s)).filter(n => !rec.present.includes(n));
+    absentDiv.innerHTML = absentList.length
+      ? absentList.map(n => `<span class="student-chip absent">${n}</span>`).join('')
+      : '<span style="color:var(--text3);font-size:.82rem;">Semua murid hadir! 🎉</span>';
+
+    document.getElementById('absen-badge').innerHTML = `<span class="badge badge-green">✅ Sudah Dikirim</span>`;
+  }
+}
+
+/* ═══ STATISTIK ═══ */
+function loadStatistik() {
+  const year    = parseInt(document.getElementById('stat-year').value);
+  const month   = parseInt(document.getElementById('stat-month').value);
+  const records = getMonthlyReport(teacher.id, year, month);
+  const total   = students.length;
+
+  const submitted  = records.filter(r => r.submitted).length;
+  const totalHadir = records.reduce((s, r) => s + r.count, 0);
+  const avgRate    = submitted && total ? Math.round(totalHadir / (submitted * total) * 100) : 0;
+
+  // Summary cards
+  document.getElementById('stat-summary-cards').innerHTML = `
+    <div class="stat-mini-card">
+      <div class="smc-val" style="color:var(--cyan);">${submitted}</div>
+      <div class="smc-lbl">Hari Mengajar</div>
+    </div>
+    <div class="stat-mini-card">
+      <div class="smc-val" style="color:var(--green);">${totalHadir}</div>
+      <div class="smc-lbl">Total Kehadiran</div>
+    </div>
+    <div class="stat-mini-card">
+      <div class="smc-val" style="color:var(--violet);">${avgRate}%</div>
+      <div class="smc-lbl">Rata-rata Hadir</div>
+    </div>
+    <div class="stat-mini-card">
+      <div class="smc-val" style="color:var(--pink);">${total}</div>
+      <div class="smc-lbl">Total Murid</div>
+    </div>`;
+
+  // Per-student bar breakdown
+  const studentStats = students.map(s => {
+    const name = studentName(s);
+    const present = records.filter(r => r.present.includes(name)).length;
+    const pct = submitted ? Math.round(present / submitted * 100) : 0;
+    return { name, present, pct, kelas: typeof s === 'object' ? (s.kelas || '') : '' };
+  }).sort((a, b) => b.pct - a.pct);
+
+  document.getElementById('stat-student-bars').innerHTML = studentStats.map(s => {
+    const barColor = s.pct >= 80 ? 'var(--green)' : s.pct >= 50 ? 'var(--amber)' : 'var(--red)';
+    return `
+      <div class="stat-bar-item">
+        <div class="stat-bar-header">
+          <div class="stat-bar-name">
+            <span class="stat-bar-avatar">${s.name.charAt(0)}</span>
+            <div>
+              <div style="font-weight:600;font-size:.85rem;">${s.name}</div>
+              ${s.kelas ? `<div style="font-size:.68rem;color:var(--text3);">${s.kelas}</div>` : ''}
+            </div>
+          </div>
+          <div class="stat-bar-val">
+            <span style="font-weight:800;color:${barColor};">${s.pct}%</span>
+            <span style="font-size:.72rem;color:var(--text3);">${s.present}/${submitted}</span>
+          </div>
+        </div>
+        <div class="stat-bar-track">
+          <div class="stat-bar-fill" style="width:${s.pct}%;background:${barColor};"></div>
+        </div>
+      </div>`;
+  }).join('');
+
+  // Calendar heatmap
+  renderCalendar(year, month, records);
+}
+
+function renderCalendar(year, month, records) {
+  const cal = document.getElementById('stat-calendar');
+  const firstDay  = new Date(year, month - 1, 1).getDay();
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const today = new Date();
+
+  // Build attendance map
+  const attMap = {};
+  records.forEach(r => {
+    const d = new Date(r.date + 'T00:00:00');
+    attMap[d.getDate()] = r;
+  });
+
+  let html = '<div class="cal-header">' + DAYS_SHT.map(d => `<div class="cal-day-name">${d}</div>`).join('') + '</div>';
+  html += '<div class="cal-grid">';
+
+  // Empty cells before first day
+  for (let i = 0; i < firstDay; i++) html += '<div class="cal-cell cal-empty"></div>';
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const rec = attMap[d];
+    const isToday = (d === today.getDate() && month - 1 === today.getMonth() && year === today.getFullYear());
+    let cls = 'cal-cell';
+    let inner = d;
+    if (isToday) cls += ' cal-today';
+    if (rec && rec.submitted) {
+      const pct = students.length ? Math.round(rec.count / students.length * 100) : 0;
+      if (pct >= 80)      cls += ' cal-high';
+      else if (pct >= 50) cls += ' cal-mid';
+      else                cls += ' cal-low';
+      inner = `<span class="cal-date">${d}</span><span class="cal-count">${rec.count}</span>`;
+    } else {
+      cls += ' cal-none';
+    }
+    html += `<div class="${cls}">${inner}</div>`;
+  }
+  html += '</div>';
+
+  // Legend
+  html += `<div class="cal-legend">
+    <span class="cal-legend-item"><span class="cal-dot cal-dot-high"></span> ≥80%</span>
+    <span class="cal-legend-item"><span class="cal-dot cal-dot-mid"></span> 50-79%</span>
+    <span class="cal-legend-item"><span class="cal-dot cal-dot-low"></span> <50%</span>
+    <span class="cal-legend-item"><span class="cal-dot cal-dot-none"></span> Tidak Ada</span>
+  </div>`;
+
+  cal.innerHTML = html;
+}
+
+function printStatistik() {
+  const month = parseInt(document.getElementById('stat-month').value);
+  const year  = parseInt(document.getElementById('stat-year').value);
+  const records = getMonthlyReport(teacher.id, year, month);
+  const total = students.length;
+  const submitted = records.filter(r => r.submitted).length;
+  const totalHadir = records.reduce((s, r) => s + r.count, 0);
+  const pelajaranList = [...new Set(students.flatMap(s => typeof s === 'string' ? [] : (s.pelajaran || [])))];
+
+  const area = document.getElementById('print-stat-area');
+  const studentRows = students.map(s => {
+    const name = studentName(s);
+    const present = records.filter(r => r.present.includes(name)).length;
+    const pct = submitted ? Math.round(present / submitted * 100) : 0;
+    const kelas = typeof s === 'object' ? (s.kelas || '—') : '—';
+    return `<tr><td>${name}</td><td>${kelas}</td><td>${present}</td><td>${submitted}</td><td>${pct}%</td></tr>`;
+  }).join('');
+
+  area.style.display = '';
+  area.innerHTML = `
+    <div class="print-header-box">
+      <div class="school-name">🎵 Absensi Sanggar</div>
+      <div class="report-title">Statistik Kehadiran — ${teacher.name}</div>
+      <div class="report-meta">${MONTHS[month-1]} ${year} | ${total} Murid${pelajaranList.length ? ' | ' + pelajaranList.join(', ') : ''}</div>
+    </div>
+    <div class="print-summary-row">
+      <div class="print-summary-cell"><div class="sv">${submitted}</div><div class="sl">Hari Mengajar</div></div>
+      <div class="print-summary-cell"><div class="sv">${totalHadir}</div><div class="sl">Total Hadir</div></div>
+      <div class="print-summary-cell"><div class="sv">${submitted && total ? Math.round(totalHadir/(submitted*total)*100) : 0}%</div><div class="sl">Rata-rata</div></div>
+      <div class="print-summary-cell"><div class="sv">${total}</div><div class="sl">Total Murid</div></div>
+    </div>
+    <table>
+      <thead><tr><th>Nama Murid</th><th>Kelas</th><th>Hadir</th><th>Hari Aktif</th><th>Persen</th></tr></thead>
+      <tbody>${studentRows}</tbody>
+    </table>`;
+
+  window.print();
+  setTimeout(() => { area.style.display = 'none'; }, 500);
+}
+
+/* ═══ RIWAYAT ═══ */
+function populateFilters() {
+  const now = new Date();
+  ['riwayat-month','stat-month'].forEach(id => {
+    const sel = document.getElementById(id);
+    MONTHS.forEach((m, i) => {
+      const opt = document.createElement('option');
+      opt.value = i + 1; opt.textContent = m;
+      if (i === now.getMonth()) opt.selected = true;
+      sel.appendChild(opt);
+    });
+  });
+  ['riwayat-year','stat-year'].forEach(id => {
+    const sel = document.getElementById(id);
+    for (let y = now.getFullYear(); y >= now.getFullYear() - 2; y--) {
+      const opt = document.createElement('option');
+      opt.value = y; opt.textContent = y;
+      sel.appendChild(opt);
+    }
+  });
+}
+
+function loadRiwayat() {
+  const year    = parseInt(document.getElementById('riwayat-year').value);
+  const month   = parseInt(document.getElementById('riwayat-month').value);
+  const records = getMonthlyReport(teacher.id, year, month);
+  const container = document.getElementById('riwayat-list');
+  const summary   = document.getElementById('riwayat-summary');
+
+  // Summary
+  const submitted  = records.filter(r => r.submitted).length;
+  const totalHadir = records.reduce((s, r) => s + r.count, 0);
+  summary.innerHTML = `
+    <div class="riwayat-stat"><span class="rs-val" style="color:var(--cyan);">${submitted}</span><span class="rs-lbl">Hari Absensi</span></div>
+    <div class="riwayat-stat"><span class="rs-val" style="color:var(--green);">${totalHadir}</span><span class="rs-lbl">Total Hadir</span></div>
+    <div class="riwayat-stat"><span class="rs-val" style="color:var(--violet);">${submitted ? Math.round(totalHadir / submitted) : 0}</span><span class="rs-lbl">Rata-rata/Hari</span></div>`;
+
+  if (!records.length) {
+    container.innerHTML = `<div class="empty-state"><div class="icon">📭</div>Tidak ada data absensi bulan ini.</div>`;
+    return;
+  }
+
+  container.innerHTML = records.map(r => {
+    const d = new Date(r.date + 'T00:00:00');
+    const total = students.length;
+    const absentList = students.map(s => studentName(s)).filter(n => !r.present.includes(n));
+    const pct = total ? Math.round(r.count / total * 100) : 0;
+    return `
+      <div class="history-item">
+        <div class="history-date">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div class="history-day-circle">${d.getDate()}</div>
+            <div>
+              <div style="font-weight:700;font-size:.88rem;">${DAYS[d.getDay()]}</div>
+              <div style="font-size:.7rem;color:var(--text3);">${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="badge ${r.submitted ? 'badge-green' : 'badge-amber'}" style="font-size:.72rem;">${r.submitted ? r.count + '/' + total : '⏳'}</span>
+            ${r.submitted ? `<div class="mini-progress"><div class="mini-fill" style="width:${pct}%"></div></div>` : ''}
+          </div>
+        </div>
+        ${r.submitted ? `
+          <div class="history-students">
+            ${r.present.map(n => `<span class="student-chip">${n}</span>`).join('')}
+            ${absentList.map(n => `<span class="student-chip absent">${n}</span>`).join('')}
+          </div>` : '<div style="font-size:.8rem;color:var(--text3);padding:4px 0;">Tidak ada data</div>'}
+      </div>`;
+  }).join('');
+}
+
+/* ═══ PROFIL ═══ */
+function renderProfile() {
+  document.getElementById('profile-avatar').textContent = session.displayName.charAt(0).toUpperCase();
+  document.getElementById('profile-name').textContent = session.displayName;
+  document.getElementById('profile-username').textContent = session.username;
+  document.getElementById('profile-total-murid').textContent = students.length;
+
+  const classList = [...new Set(students.map(s => typeof s === 'object' ? s.kelas : '').filter(Boolean))];
+  const pelajaranList = [...new Set(students.flatMap(s => typeof s === 'object' ? (s.pelajaran || []) : []))];
+  document.getElementById('profile-kelas').textContent = classList.length ? classList.join(', ') : '—';
+  document.getElementById('profile-pelajaran').textContent = pelajaranList.length ? pelajaranList.join(', ') : '—';
+
+  document.getElementById('profile-murid-cards').innerHTML = students.map(s => {
+    const name = studentName(s);
+    const kelas = typeof s === 'object' ? (s.kelas || '') : '';
+    const pelajaran = typeof s === 'object' && s.pelajaran?.length ? s.pelajaran : [];
+    return `
+      <div class="profile-murid-item">
+        <div class="pm-avatar">${name.charAt(0)}</div>
+        <div class="pm-info">
+          <div class="pm-name">${name}</div>
+          <div class="pm-meta">${[kelas, ...pelajaran].filter(Boolean).join(' · ') || '—'}</div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+/* ─── Auth helpers ───── */
+function doLogout()    { logout(); window.location.href = 'index.html'; }
+function switchToAdmin() { window.location.href = 'admin.html'; }
+
+/* ═══ TEACHER SELF CHECKIN ═══ */
+function renderTeacherCheckin() {
+  const rec = getTeacherAttendanceForDate(teacher.id, todayKey);
+  const currentStatus = rec ? rec.status : null;
+  const savedAt = rec ? new Date(rec.savedAt).toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit' }) : null;
+
+  const STATUS_OPTIONS = [
+    { value: 'hadir', label: '✅ Hadir',  color: '#10b981', bgClass: 'badge-green' },
+    { value: 'izin',  label: '📋 Izin',   color: '#06b6d4', bgClass: 'badge-cyan' },
+    { value: 'sakit', label: '🤒 Sakit',  color: '#f59e0b', bgClass: 'badge-amber' },
+    { value: 'alpha', label: '❌ Alpha',  color: '#ef4444', bgClass: 'badge-pink' },
+  ];
+
+  const badgeEl = document.getElementById('teacher-checkin-badge');
+  const areaEl  = document.getElementById('teacher-checkin-area');
+
+  if (currentStatus) {
+    const opt = STATUS_OPTIONS.find(o => o.value === currentStatus);
+    badgeEl.innerHTML = `<span class="badge ${opt?.bgClass || 'badge-violet'}" style="font-size:.76rem;">${opt?.label || currentStatus}</span>`;
+    areaEl.innerHTML = `
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:var(--radius);background:${opt?.color}10;border:1px solid ${opt?.color}30;">
+        <div style="font-size:1.6rem;">${currentStatus === 'hadir' ? '✅' : currentStatus === 'izin' ? '📋' : currentStatus === 'sakit' ? '🤒' : '❌'}</div>
+        <div style="flex:1;">
+          <div style="font-weight:700;font-size:.88rem;color:${opt?.color};">
+            Status: ${currentStatus.charAt(0).toUpperCase() + currentStatus.slice(1)}
+          </div>
+          <div style="font-size:.72rem;color:var(--text3);">Tercatat pukul ${savedAt} WIB</div>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="resetTeacherCheckin()">✏️ Ubah</button>
+      </div>
+    `;
+  } else {
+    badgeEl.innerHTML = `<span class="badge badge-amber" style="font-size:.76rem;">⏳ Belum Absen</span>`;
+    areaEl.innerHTML = `
+      <div style="display:flex;flex-wrap:wrap;gap:10px;">
+        ${STATUS_OPTIONS.map(opt => `
+          <button class="btn btn-sm" 
+            style="flex:1;min-width:100px;padding:12px 10px;border-radius:var(--radius);border:2px solid ${opt.color}40;background:${opt.color}08;color:${opt.color};font-weight:700;font-size:.82rem;transition:all .2s;cursor:pointer;"
+            onmouseover="this.style.background='${opt.color}';this.style.color='#fff';this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 12px ${opt.color}40'"
+            onmouseout="this.style.background='${opt.color}08';this.style.color='${opt.color}';this.style.transform='';this.style.boxShadow=''"
+            onclick="handleTeacherCheckin('${opt.value}')"
+          >${opt.label}</button>
+        `).join('')}
+      </div>
+    `;
+  }
+}
+
+function handleTeacherCheckin(status) {
+  // Only require GPS for 'hadir' status
+  if (status === 'hadir') {
+    requireGPSVerification(() => {
+      updateGPSCard('verified');
+      doTeacherCheckin(status);
+    });
+  } else {
+    doTeacherCheckin(status);
+  }
+}
+
+function doTeacherCheckin(status) {
+  saveTeacherAttendanceForDate(teacher.id, todayKey, status);
+  const labels = { hadir: '✅ Hadir', izin: '📋 Izin', sakit: '🤒 Sakit', alpha: '❌ Alpha' };
+  showToast(`${labels[status]} — Absensi Anda tercatat!`, 'success');
+  renderTeacherCheckin();
+  renderQuickStats();
+}
+
+function resetTeacherCheckin() {
+  // Re-show status buttons for re-selection
+  const rec = getTeacherAttendanceForDate(teacher.id, todayKey);
+  const STATUS_OPTIONS = [
+    { value: 'hadir', label: '✅ Hadir',  color: '#10b981' },
+    { value: 'izin',  label: '📋 Izin',   color: '#06b6d4' },
+    { value: 'sakit', label: '🤒 Sakit',  color: '#f59e0b' },
+    { value: 'alpha', label: '❌ Alpha',  color: '#ef4444' },
+  ];
+  const currentStatus = rec ? rec.status : null;
+
+  document.getElementById('teacher-checkin-badge').innerHTML = `<span class="badge badge-amber" style="font-size:.76rem;">✏️ Ubah Status</span>`;
+  document.getElementById('teacher-checkin-area').innerHTML = `
+    <div style="display:flex;flex-wrap:wrap;gap:10px;">
+      ${STATUS_OPTIONS.map(opt => {
+        const isActive = currentStatus === opt.value;
+        return `
+          <button class="btn btn-sm" 
+            style="flex:1;min-width:100px;padding:12px 10px;border-radius:var(--radius);border:2px solid ${isActive ? opt.color : opt.color + '40'};background:${isActive ? opt.color : opt.color + '08'};color:${isActive ? '#fff' : opt.color};font-weight:700;font-size:.82rem;transition:all .2s;cursor:pointer;${isActive ? 'box-shadow:0 4px 12px ' + opt.color + '40;transform:scale(1.03);' : ''}"
+            onmouseover="this.style.background='${opt.color}';this.style.color='#fff';this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 12px ${opt.color}40'"
+            onmouseout="this.style.background='${isActive ? opt.color : opt.color + '08'}';this.style.color='${isActive ? '#fff' : opt.color}';this.style.transform='${isActive ? 'scale(1.03)' : ''}';this.style.boxShadow='${isActive ? '0 4px 12px ' + opt.color + '40' : ''}'"
+            onclick="handleTeacherCheckin('${opt.value}')"
+          >${opt.label}</button>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+/* ─── Toast ───── */
+function showToast(message, type = 'info') {
+  const container = document.getElementById('toast-container');
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.innerHTML = `<span>${message}</span>`;
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.classList.add('toast-out');
+    setTimeout(() => toast.remove(), 300);
+  }, 3500);
+}
+</script>
+</body>
+</html>

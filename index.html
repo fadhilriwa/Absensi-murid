@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login — Absensi Sanggar</title>
+  <meta name="description" content="Sistem absensi digital untuk pengajar dan admin sanggar. Login untuk mulai mencatat kehadiran murid." />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<div class="login-page">
+  <div class="login-bg-blob"></div>
+  <div class="login-bg-blob"></div>
+
+  <div class="login-card">
+    <div class="login-logo">🎵</div>
+    <h1 class="login-title text-gradient">Absensi Sanggar</h1>
+    <p class="login-subtitle">Masuk untuk mencatat kehadiran murid</p>
+
+    <form id="login-form" onsubmit="handleLogin(event)">
+      <div class="form-group">
+        <label class="form-label" for="login-username">Username</label>
+        <input id="login-username" class="form-input" type="text" placeholder="Masukkan username" autocomplete="username" required />
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="login-password">Password</label>
+        <input id="login-password" class="form-input" type="password" placeholder="Masukkan password" autocomplete="current-password" required />
+      </div>
+      <div id="login-error" class="hidden" style="color:var(--red);font-size:.85rem;margin-bottom:14px;padding:10px;background:rgba(248,113,113,.1);border-radius:var(--radius-sm);border:1px solid rgba(248,113,113,.2);">
+        ❌ Username atau password salah.
+      </div>
+      <button id="login-btn" class="btn btn-primary btn-full btn-lg" type="submit">
+        <span>Masuk</span> <span>→</span>
+      </button>
+    </form>
+
+    <div class="login-hint">
+      <strong>🔑 Demo Akun:</strong><br/>
+      Admin: <strong>admin</strong> / <strong>admin123</strong><br/>
+      Pengajar: <strong>miss.sari</strong> / <strong>sari123</strong>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script src="js/data.js"></script>
+<script>
+  // Redirect if already logged in
+  const existingSession = getSession();
+  if (existingSession) {
+    window.location.href = existingSession.role === 'admin' ? 'admin.html' : 'user.html';
+  }
+
+  function handleLogin(e) {
+    e.preventDefault();
+    const username = document.getElementById('login-username').value.trim();
+    const password = document.getElementById('login-password').value.trim();
+    const errorEl = document.getElementById('login-error');
+    const btn = document.getElementById('login-btn');
+
+    btn.disabled = true;
+    btn.innerHTML = '<span>Masuk...</span>';
+
+    setTimeout(() => {
+      const session = login(username, password);
+      if (session) {
+        showToast('Selamat datang, ' + session.displayName + '! 👋', 'success');
+        setTimeout(() => {
+          window.location.href = session.role === 'admin' ? 'admin.html' : 'user.html';
+        }, 600);
+      } else {
+        errorEl.classList.remove('hidden');
+        btn.disabled = false;
+        btn.innerHTML = '<span>Masuk</span><span>→</span>';
+        document.getElementById('login-password').value = '';
+        document.getElementById('login-password').focus();
+      }
+    }, 400);
+  }
+
+  function showToast(message, type = 'info') {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
+    toast.innerHTML = `<span>${icon}</span><span>${message}</span>`;
+    container.appendChild(toast);
+    setTimeout(() => {
+      toast.classList.add('toast-out');
+      setTimeout(() => toast.remove(), 300);
+    }, 3000);
+  }
+</script>
+</body>
+</html>
